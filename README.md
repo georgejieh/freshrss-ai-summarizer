@@ -44,11 +44,12 @@ pip install -r requirements.txt
    ```ini
    FRESHRSS_AUTH_TOKEN=your_freshrss_auth_token_here
    ```
+5. **Set up your RSS Feeds**
 
 ---
 
 ### 🔑 3. Get Your OpenAI API Key (Optional)
-To use **GPT-4o**, you need an OpenAI API key:
+To use **GPT-4o** or any other OpenAI models, you need an OpenAI API key:
 1. Sign up at [OpenAI](https://platform.openai.com/signup/)
 2. Go to **API Keys** section
 3. Click **Create new secret key**
