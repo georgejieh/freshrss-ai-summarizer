@@ -87,7 +87,7 @@ def monitor_ram_usage():
     while not terminate_flag:
         if psutil.virtual_memory().percent >= RAM_THRESHOLD:
             console.print(f"\n[bold red]Critical: RAM usage exceeded {RAM_THRESHOLD}%. Terminating script.[/bold red]\n")
-            os._exit(1)  # Immediate termination of the script
+            os._exit(1)
         time.sleep(CHECK_INTERVAL)
 
 ram_monitor_thread = threading.Thread(target=monitor_ram_usage, daemon=True)
@@ -163,6 +163,8 @@ def get_articles_published_today():
 
     articles = []
     today = datetime.now().date()
+    # Only uncomment if you are running script at midnight or after.
+    # today = (datetime.now() - timedelta(days=1)).date()
 
     for entry in response.json().get("items", []):
         article_date = datetime.fromtimestamp(entry["published"]).date()
@@ -200,7 +202,7 @@ def analyze_with_openai(article):
         temperature=0.3
     )
 
-    # Ensure proper Markdown formatting for financial amounts
+    # Prevent $ from being rendered as LaTex
     return re.sub(r"(\$\s?\d[\d,\.]*)", r"`\1`", response.choices[0].message.content)
 
 def analyze_with_ollama(article):
@@ -209,13 +211,15 @@ def analyze_with_ollama(article):
     if not article_content:
         return f"**Skipping article:** *{article['title']}* (Could not extract content)."
 
-    # Use "prompt" instead of "messages"
     prompt = f"{get_article_prompt()}\n\n**Title:** {article['title']}\n\n**Content:**\n{article_content}"
 
     payload = {
         "model": selected_model,
-        "prompt": prompt,  # Ensure prompt is sent directly
-        "stream": False
+        "prompt": prompt,
+        "stream": False,
+        "options": {
+            "num_ctx": 8192
+        }
     }
 
     headers = {"Content-Type": "application/json"}
@@ -224,8 +228,6 @@ def analyze_with_ollama(article):
         response = requests.post(OLLAMA_API_URL, json=payload, headers=headers)
         response.raise_for_status()
         response_json = response.json()
-
-        # Extract response from correct key
         return re.sub(r"(\$\s?\d[\d,\.]*)", r"`\1`", response_json.get("response", "**Error: No response from Ollama**"))
 
     except requests.RequestException as e:
@@ -233,24 +235,28 @@ def analyze_with_ollama(article):
 
 def generate_consolidated_summary(articles_analysis):
     """Generate final summary using OpenAI or Ollama."""
-    user_content = "\n\n".join(articles_analysis)  # Only user-provided input
+    user_content = "\n\n".join(articles_analysis)
 
+    # Prompt for OpenAI Models
     if selected_analyzer == analyze_with_openai:
         response = openai_client.chat.completions.create(
             model=selected_model,
             messages=[
-                {"role": "system", "content": get_summary_prompt()},  # System prompt here
-                {"role": "user", "content": user_content}  # Only user content
+                {"role": "system", "content": get_summary_prompt()},
+                {"role": "user", "content": user_content}
             ],
             temperature=0.3
         )
         return response.choices[0].message.content
 
-    # Ollama: System + User Prompt Combined
+    # Prompt for models running off Ollama
     payload = {
         "model": selected_model,
-        "prompt": f"{get_summary_prompt()}\n\n{user_content}",  # Full prompt for Ollama
-        "stream": False
+        "prompt": f"{get_summary_prompt()}\n\n{user_content}",
+        "stream": False,
+        "options": {
+            "num_ctx": 8192
+        }
     }
 
     headers = {"Content-Type": "application/json"}
