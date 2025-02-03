@@ -133,7 +133,7 @@ def choose_model():
                 "- llama3.3\n"
                 "- phi4\n"
                 "- llama3.2 (1B-3B)\n"
-                "\n[italic]For models with multiple parameter sizes, specify as 'model:parameter' (e.g., llama3.2:1b). Not all models support non-English languages.[/italic]"
+                "\n[italic]For models with multiple parameter sizes, specify as 'model:parameter' (e.g., llama3.2:1b). Not all models support non-English languages and not all models can generate a consolidated summary.[/italic]"
             )
             selected_model = input("\nEnter Ollama model name: ").strip()
             return
